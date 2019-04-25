@@ -32,7 +32,7 @@ class Overflow:
     """
     def __init__(self, register_dist, register_count, endianess,
                  padding_after_ra=0, gadgets_base=0,
-                 overflow_string_contents=''):
+                 overflow_string_contents='', bad_bytes=None):
         """
         Initialize the overflow class.
 
@@ -61,6 +61,10 @@ class Overflow:
         string prior to the overwrite, it can be entered here. This value is
         only used to compute length values.
         :type overflow_string_contents: str
+
+        :param bad_bytes: List of invalid bytes that cannot be sent to the
+        target.
+        :type bad_bytes: list(int)
         """
         self._register_dist = register_dist
         self._padding = padding_after_ra
@@ -69,7 +73,8 @@ class Overflow:
         self._gadget_base = gadgets_base
         self._overflow_string_contents = overflow_string_contents
         self.ra = None
-        self.stack_write = b''
+        self._stack_write = b''
+        self._bad_bytes = [bytes([curr_byte]) for curr_byte in bad_bytes]
 
         # Dynamically generate s register class variables. $fp == $s8
         for index in range(0, register_count):
@@ -88,13 +93,16 @@ class Overflow:
         """
         if type(register) is bytes:
             print(register.hex())
+            if self._has_bad_bytes(register):
+                raise Exception('Bad byte found.')
             return register
 
         register_value = struct.pack(self._endianess, register +
                                      self._gadget_base)
-
         print('%s (0x%04x + 0x%04x)' % (register_value.hex(),
                                         self._gadget_base, register))
+        if self._has_bad_bytes(register_value):
+            raise Exception('Bad byte found.')
         return register_value
 
     def _is_safe_write(self, location, length):
@@ -111,10 +119,10 @@ class Overflow:
         :return: True if safe, False if the location contains data.
         :rtype: bool
         """
-        if len(self.stack_write) == location:
+        if len(self._stack_write) == location:
             return True
 
-        current_contents = self.stack_write[location:location + length]
+        current_contents = self._stack_write[location:location + length]
         if current_contents == b'X' * length:
             return True
         return False
@@ -144,24 +152,40 @@ class Overflow:
             raise Exception('Address and command cannot be written at the '
                             'same location on the stack.')
         
-        if len(self.stack_write) < offset:
-            self.stack_write += b'X' * (offset - len(self.stack_write))
+        if len(self._stack_write) < offset:
+            self._stack_write += b'X' * (offset - len(self._stack_write))
 
         if address:
             if self._is_safe_write(offset, 4):
-                self.stack_write = self.stack_write[:offset] + \
+                self._stack_write = self._stack_write[:offset] + \
                                    self._pack_register(address) + \
-                                   self.stack_write[offset + 4:]
+                                   self._stack_write[offset + 4:]
             else:
                 raise Exception('Address write overwrote values on the stack.')
 
         elif command:
             if self._is_safe_write(offset, len(command)):
-                self.stack_write = self.stack_write[:offset] + \
+                self._stack_write = self._stack_write[:offset] + \
                                    _bc(command) + \
-                                   self.stack_write[offset + len(command):]
+                                   self._stack_write[offset + len(command):]
             else:
                 raise Exception('Command write overwrote values on the stack.')
+
+    def _has_bad_bytes(self, byte_str):
+        """
+        Check for user defined bad bytes in the provided byte string.
+
+        :return: False if no bad bytes are found, True if bad bytes are found.
+        :rtype: bool
+        """
+        if self._bad_bytes is None:
+            return False
+
+        for byte in self._bad_bytes:
+            if byte in byte_str:
+                print('Bad byte 0x%s found.' % byte.hex())
+                return True
+        return False
 
     def generate(self):
         """
@@ -193,10 +217,13 @@ class Overflow:
         print('ra = 0x', end=''),
         overflow += self._pack_register(self.ra)
 
-        print('stack = %s' % self.stack_write)
+        print('stack = %s' % self._stack_write)
         print('*' * 20)
         print()
-        return overflow + self.stack_write
+        if self._has_bad_bytes(self._stack_write):
+            raise Exception('Bad bytes found.')
+
+        return overflow + self._stack_write
 
 
 class SimpleRequest:
