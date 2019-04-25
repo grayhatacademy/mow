@@ -127,7 +127,8 @@ class Overflow:
             return True
         return False
 
-    def add_to_stack(self, offset, address=None, command=None):
+    def add_to_stack(self, offset, address=None, command=None,
+                     force_overwrite=False):
         """
         Write an address or command on the stack passed the $ra address. Used
         for writing ROP gadget addresses and commands on the stack.
@@ -141,6 +142,10 @@ class Overflow:
 
         :param command: Command to write at the provided offset.
         :type command: str
+
+        :param force_overwrite: Force overwriting values on the stack,
+        preventing an exception from being thrown.
+        :type force_overwrite: bool
 
         :raises: Exception if invalid parameters are provided.
         :raises: Exception if a write collision occurs.
@@ -156,7 +161,7 @@ class Overflow:
             self._stack_write += b'X' * (offset - len(self._stack_write))
 
         if address:
-            if self._is_safe_write(offset, 4):
+            if force_overwrite or self._is_safe_write(offset, 4):
                 self._stack_write = self._stack_write[:offset] + \
                                    self._pack_register(address) + \
                                    self._stack_write[offset + 4:]
@@ -164,7 +169,7 @@ class Overflow:
                 raise Exception('Address write overwrote values on the stack.')
 
         elif command:
-            if self._is_safe_write(offset, len(command)):
+            if force_overwrite or self._is_safe_write(offset, len(command)):
                 self._stack_write = self._stack_write[:offset] + \
                                    _bc(command) + \
                                    self._stack_write[offset + len(command):]
