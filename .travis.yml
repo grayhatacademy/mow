@@ -7,4 +7,4 @@ python:
  - "3.7-dev"
  - "3.8-dev"
  - "nightly"
-script: run_test.sh
+script: ./run_test.sh
