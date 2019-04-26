@@ -7,4 +7,4 @@ python:
  - "3.7-dev"
  - "3.8-dev"
  - "nightly"
-script: python3 -m tests.test_mow 
+script: run_test.sh
