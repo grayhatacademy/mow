@@ -74,12 +74,12 @@ class Overflow:
                             'mow.LITTLE_ENDIAN or mow.BIG_ENDIAN')
 
         self._register_dist = register_dist
-        self._padding = padding_after_ra
+        self._padding_after_ra = padding_after_ra
         self._register_count = register_count
         self._endianess = endianess
         self._gadget_base = gadgets_base
         self._overflow_string_contents = overflow_string_contents
-        self.ra = None
+        self.ra = b'JJJJ'
         self._stack_write = b''
         self._bad_bytes = [bytes([curr_byte]) for curr_byte in bad_bytes] \
             if bad_bytes is not None else None
@@ -103,7 +103,10 @@ class Overflow:
         :return: Packed register value.
         :rtype: bytes
         """
-        if type(register) is bytes:
+        if not isinstance(register, bytes) and not isinstance(register, int):
+            raise Exception('Register must be bytes or int type.')
+
+        if isinstance(register, bytes):
             print(register.hex())
             if self._has_bad_bytes(register):
                 raise Exception('Bad byte found.')
@@ -131,22 +134,28 @@ class Overflow:
         :return: True if safe, False if the location contains data.
         :rtype: bool
         """
-        if len(self._stack_write) == location:
+        if location < 0:
+            raise Exception('Cannot write to negative location.')
+
+        if length < 0:
+            raise Exception('Cannot write a negative length.')
+
+        if len(self._stack_write) < location:
             return True
 
         current_contents = self._stack_write[location:location + length]
-        if current_contents == b'X' * length:
+        if current_contents == b'X' * len(current_contents):
             return True
         return False
 
-    def add_to_stack(self, offset, address=None, command=None,
+    def add_to_stack(self, padding, address=None, command=None,
                      force_overwrite=False):
         """
         Write an address or command on the stack passed the $ra address. Used
         for writing ROP gadget addresses and commands on the stack.
 
-        :param offset: Location on the stack to write the value.
-        :type offset: int
+        :param padding: Padding to place before entry on the stack.
+        :type padding: int
 
         :param address: Address to write at the provided offset. Gadget base
         is added to this value prior to the write.
@@ -169,22 +178,28 @@ class Overflow:
             raise Exception('Address and command cannot be written at the '
                             'same location on the stack.')
         
-        if len(self._stack_write) < offset:
-            self._stack_write += b'X' * (offset - len(self._stack_write))
+        if len(self._stack_write) < padding:
+            self._stack_write += b'X' * (padding - len(self._stack_write))
 
         if address:
-            if force_overwrite or self._is_safe_write(offset, 4):
-                self._stack_write = self._stack_write[:offset] + \
-                                   self._pack_register(address) + \
-                                   self._stack_write[offset + 4:]
+            if not isinstance(address, int):
+                raise Exception('Address must be an integer.')
+
+            if force_overwrite or self._is_safe_write(padding, 4):
+                self._stack_write = self._stack_write[:padding] + \
+                                    self._pack_register(address) + \
+                                    self._stack_write[padding + 4:]
             else:
                 raise Exception('Address write overwrote values on the stack.')
 
         elif command:
-            if force_overwrite or self._is_safe_write(offset, len(command)):
-                self._stack_write = self._stack_write[:offset] + \
-                                   _bc(command) + \
-                                   self._stack_write[offset + len(command):]
+            if not isinstance(command, str):
+                raise Exception('Command must be a string.')
+
+            if force_overwrite or self._is_safe_write(padding, len(command)):
+                self._stack_write = self._stack_write[:padding] + \
+                                    _bc(command) + \
+                                    self._stack_write[padding + len(command):]
             else:
                 raise Exception('Command write overwrote values on the stack.')
 
@@ -192,9 +207,15 @@ class Overflow:
         """
         Check for user defined bad bytes in the provided byte string.
 
+        :param byte_str: Byte string to check for bad bytes.
+        :type byte_str: bytes
+
         :return: False if no bad bytes are found, True if bad bytes are found.
         :rtype: bool
         """
+        if not isinstance(byte_str, bytes):
+            raise Exception('byte_str must be of type bytes.')
+
         if self._bad_bytes is None:
             return False
 
@@ -206,14 +227,11 @@ class Overflow:
 
     def generate(self):
         """
-        Generate an overflow string based on $sX registers, $ra, and the stack.
+        Generate an overflow string based on registers, $ra, and the stack.
 
         :return: Overflow string.
         :rtype: bytes
         """
-        if self.ra is None:
-            raise Exception('Must set $ra before generating an overflow.')
-
         print('*' * 20)
         print('Overflow Generation')
         print('*' * 20)
@@ -238,11 +256,14 @@ class Overflow:
         print('ra = 0x', end=''),
         overflow += self._pack_register(self.ra)
 
+        print('Adding %d bytes of padding after ra' % self._padding_after_ra)
+        overflow += b'X' * self._padding_after_ra
+
         print('stack = %s' % self._stack_write)
         print('*' * 20)
         print()
         if self._has_bad_bytes(self._stack_write):
-            raise Exception('Bad bytes found.')
+            raise Exception('Bad bytes found in the stack.')
 
         return overflow + self._stack_write
 
@@ -266,6 +287,18 @@ class SimpleRequest:
         :param args: Arguments to provide with request.
         :type args: dict
         """
+        if not isinstance(host, str):
+            raise Exception('Host must be a string.')
+
+        if not isinstance(port, int):
+            raise Exception('Port must be an integer.')
+
+        if request and not isinstance(request, str):
+            raise Exception('Request must be a string.')
+
+        if args and not isinstance(args, dict):
+            raise Exception('Args must be provided as a dictionary.')
+
         self.host = host
         self.port = port
         self.request = request
@@ -290,7 +323,8 @@ class CustomRequest:
     """
     Generate a custom request. Use when you need to control header values.
     """
-    def __init__(self, host, port, request_type, request_dest, headers, data):
+    def __init__(self, host, port, request_type, request_dest, headers,
+                 data=None):
         """
 
         :param host: IP or host name of target.
@@ -302,19 +336,41 @@ class CustomRequest:
         :param request_type: GET or POST request.
         :type request_type: str
 
-        :param request_dest: Page to request. Should not start with '/'.
+        :param request_dest: Page to request.
         :type request_dest: str
 
         :param headers: Values to send in the header field.
         :type headers: dict
 
         :param data: Data to send with the packet.
-        :type data: str
+        :type data: str or None
         """
+        if not isinstance(host, str):
+            raise Exception('Host must be a string.')
+
+        if not isinstance(port, int):
+            raise Exception('Port must be an integer')
+
+        if request_type != b'POST' and request_type != b'GET':
+            raise Exception('Request type must be mow.POST or mow.GET.')
+
+        if not isinstance(request_dest, str):
+            raise Exception('Request destination must be a string.')
+
+        if not isinstance(headers, dict):
+            raise Exception('Headers must be a dictionary.')
+
+        if data and not isinstance(data, str):
+            raise Exception('Data must be a string.')
+
         self.host = b'Host: %s:%d' % (_bc(host), port)
+
+        if request_dest.startswith('/'):
+            request_dest = request_dest[1:]
+
         self.request = b'%s /%s HTTP/1.1' % (request_type, _bc(request_dest))
         self.headers = headers
-        self.data = _bc(data)
+        self.data = _bc(data) if data is not None else b''
 
     def create_packet(self):
         """
@@ -351,7 +407,7 @@ def send_packet(host, port, packet):
     :param port: Listening port on the target.
     :type port: int
 
-    :param packet: Packet to send to the target. Generate from a
+    :param packet: Packet to send to the target. Generated from a
     CustomRequest class.
     :type packet: bytes
     """
