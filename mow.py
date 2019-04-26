@@ -40,21 +40,21 @@ class Overflow:
         overflow to the s0 register in memory.
         :type register_dist: int
 
-        :param register_count: Number of registers available in the function. If
+        :param register_count: Number of registers saved in the function. If
         the only register is s0, then provide 1. If s0 - s7 and fp are available
-        the provide 8. The fp register will be designated s8.
+        then provide 9.
         :type register_count: int
 
-        :param endianess: Either BIG_ENDIAN or LITTLE_ENDIAN.
+        :param endianess: Either mow.BIG_ENDIAN or mow.LITTLE_ENDIAN.
         :type endianess: str
 
         :param padding_after_ra: Indicate amount of padding after ra on the
         stack.
         :type padding_after_ra: int
 
-        :param gadgets_base: Base address of any addresses used. If multiple
-        base addresses are needed set this value to 0 and perform the math
-        when setting the register values.
+        :param gadgets_base: Base address of ROP gadgets used in a loaded
+        library. If multiple base addresses are needed set this value to 0 and
+        perform the math when setting the register values.
         :type gadgets_base: int
 
         :param overflow_string_contents: If the target buffer contains a
@@ -74,12 +74,17 @@ class Overflow:
         self._overflow_string_contents = overflow_string_contents
         self.ra = None
         self._stack_write = b''
-        self._bad_bytes = [bytes([curr_byte]) for curr_byte in bad_bytes]
+        self._bad_bytes = [bytes([curr_byte]) for curr_byte in bad_bytes] \
+            if bad_bytes is not None else None
 
-        # Dynamically generate s register class variables. $fp == $s8
+        # Dynamically generate register class variables.
         for index in range(0, register_count):
-            setattr(self, 's%d' % index,
-                    bytes(chr(ord('A') + index) * 4, 'utf8'))
+            if index == 8:
+                register_name = 'fp'
+            else:
+                register_name = 's%d' % index
+            register_value = bytes(chr(ord('A') + index) * 4, 'utf8')
+            setattr(self, register_name, register_value)
 
     def _pack_register(self, register):
         """
@@ -215,9 +220,13 @@ class Overflow:
                                   self._overflow_string_contents))
 
         for index in range(0, self._register_count):
-            s_value = getattr(self, 's%d' % index)
-            print('s%d = 0x' % index, end='')
-            overflow += self._pack_register(s_value)
+            if index == 8:
+                register_value = getattr(self, 'fp')
+                print('fp = 0x', end='')
+            else:
+                register_value = getattr(self, 's%d' % index)
+                print('s%d = 0x' % index, end='')
+            overflow += self._pack_register(register_value)
 
         print('ra = 0x', end=''),
         overflow += self._pack_register(self.ra)

