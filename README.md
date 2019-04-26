@@ -1,4 +1,6 @@
 # mow
+[![Build Status](https://travis-ci.org/fuzzywalls/mow.svg?branch=master)](https://travis-ci.org/fuzzywalls/mow)
+
 Mips Overflow Writer - Quickly write MIPS big/little endian overflows. Requires 
 Python 3.5+.
 
