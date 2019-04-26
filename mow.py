@@ -66,6 +66,13 @@ class Overflow:
         target.
         :type bad_bytes: list(int)
         """
+        if register_count < 0 or register_count > 9:
+            raise Exception('Register count must be between 0 and 9.')
+
+        if endianess not in [BIG_ENDIAN, LITTLE_ENDIAN]:
+            raise Exception('Invalid value for endianess. Must be '
+                            'mow.LITTLE_ENDIAN or mow.BIG_ENDIAN')
+
         self._register_dist = register_dist
         self._padding = padding_after_ra
         self._register_count = register_count
