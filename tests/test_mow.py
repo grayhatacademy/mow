@@ -387,7 +387,10 @@ class TestCreateUrl(unittest.TestCase):
         sr = mow.SimpleRequest('1.2.3.4', request='apply.cgi',
                                args={'ab': 'cd', 'ef': 'gh'})
         result = sr.create_url()
-        self.assertEqual(result, 'http://1.2.3.4/apply.cgi?ab=cd&ef=gh')
+        self.assertIn('ab=cd', result)
+        self.assertIn('ef=gh', result)
+        self.assertIn('http://1.2.3.4/apply.cgi?', result)
+        self.assertIn('&', result)
 
 
 class TestCustomRequestInit(unittest.TestCase):
