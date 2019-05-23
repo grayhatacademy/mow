@@ -453,6 +453,18 @@ class TestCustomRequestInit(unittest.TestCase):
 
 
 class TestCreatePacket(unittest.TestCase):
+    def test_no_headers(self):
+        cr = mow.CustomRequest('1.2.3.4', port=80, request_type=mow.GET,
+                               request_dest='apply.cgi',
+                               headers=None, data='data')
+
+        packet = cr.create_packet()
+        expected_result = b'GET /apply.cgi HTTP/1.1\r\n'
+        expected_result += b'Host: 1.2.3.4:80\r\n'
+        expected_result += b'Content-Length: 4\r\n\r\n'
+        expected_result += b'data'
+        self.assertEqual(packet, expected_result)
+
     def test_no_data(self):
         cr = mow.CustomRequest('1.2.3.4', port=80, request_type=mow.GET,
                                request_dest='apply.cgi',

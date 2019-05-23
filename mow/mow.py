@@ -323,7 +323,7 @@ class CustomRequest:
     """
     Generate a custom request. Use when you need to control header values.
     """
-    def __init__(self, host, port, request_type, request_dest, headers,
+    def __init__(self, host, port, request_type, request_dest, headers=None,
                  data=None):
         """
 
@@ -340,7 +340,7 @@ class CustomRequest:
         :type request_dest: str or bytes
 
         :param headers: Values to send in the header field.
-        :type headers: dict
+        :type headers: dict or None
 
         :param data: Data to send with the packet.
         :type data: str or None
@@ -358,7 +358,7 @@ class CustomRequest:
                                                                 bytes):
             raise Exception('Request destination must be a string or bytes.')
 
-        if not isinstance(headers, dict):
+        if headers and not isinstance(headers, dict):
             raise Exception('Headers must be a dictionary.')
 
         if data and not isinstance(data, str):
@@ -386,8 +386,9 @@ class CustomRequest:
         print('*' * 20)
         packet = self.request + b'\r\n'
         packet += self.host + b'\r\n'
-        for header in self.headers:
-            packet += b'%s: %s\r\n' % (_bc(header), _bc(self.headers[header]))
+        if self.headers:
+            for header in self.headers:
+                packet += b'%s: %s\r\n' % (_bc(header), _bc(self.headers[header]))
 
         data_len = len(self.data) if self.data is not None else 0
         packet += b'Content-Length: %d\r\n\r\n' % data_len
