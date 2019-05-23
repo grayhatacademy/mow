@@ -13,7 +13,7 @@ def _bc(string):
     this where needed.
 
     :param string: String to convert, or not.
-    :type string: str
+    :type string: str or bytes
 
     :return: Bytes representation of the string.
     :rtype: bytes
@@ -337,7 +337,7 @@ class CustomRequest:
         :type request_type: str
 
         :param request_dest: Page to request.
-        :type request_dest: str
+        :type request_dest: str or bytes
 
         :param headers: Values to send in the header field.
         :type headers: dict
@@ -354,8 +354,9 @@ class CustomRequest:
         if request_type != b'POST' and request_type != b'GET':
             raise Exception('Request type must be mow.POST or mow.GET.')
 
-        if not isinstance(request_dest, str):
-            raise Exception('Request destination must be a string.')
+        if not isinstance(request_dest, str) and not isinstance(request_dest,
+                                                                bytes):
+            raise Exception('Request destination must be a string or bytes.')
 
         if not isinstance(headers, dict):
             raise Exception('Headers must be a dictionary.')
@@ -365,10 +366,11 @@ class CustomRequest:
 
         self.host = b'Host: %s:%d' % (_bc(host), port)
 
-        if request_dest.startswith('/'):
+        request_dest = _bc(request_dest)
+        if request_dest.startswith(b'/'):
             request_dest = request_dest[1:]
 
-        self.request = b'%s /%s HTTP/1.1' % (request_type, _bc(request_dest))
+        self.request = b'%s /%s HTTP/1.1' % (request_type, request_dest)
         self.headers = headers
         self.data = _bc(data) if data is not None else b''
 

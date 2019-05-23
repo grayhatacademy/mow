@@ -445,6 +445,12 @@ class TestCustomRequestInit(unittest.TestCase):
                                data='')
         self.assertEqual(cr.request, b'GET /apply.cgi HTTP/1.1')
 
+    def test_remove_slash_bytes(self):
+        cr = mow.CustomRequest('1.2.3.4', port=80, request_type=mow.GET,
+                               request_dest=b'/apply.cgi', headers={'a': 'b'},
+                               data='')
+        self.assertEqual(cr.request, b'GET /apply.cgi HTTP/1.1')
+
 
 class TestCreatePacket(unittest.TestCase):
     def test_no_data(self):
