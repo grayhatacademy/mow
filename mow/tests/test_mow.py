@@ -490,6 +490,19 @@ class TestCreatePacket(unittest.TestCase):
         expected_result += b'data'
         self.assertEqual(packet, expected_result)
 
+    def test_data_bytes(self):
+        cr = mow.CustomRequest('1.2.3.4', port=80, request_type=mow.GET,
+                               request_dest='apply.cgi',
+                               headers={'a': 'b'}, data=b'data')
+
+        packet = cr.create_packet()
+        expected_result = b'GET /apply.cgi HTTP/1.1\r\n'
+        expected_result += b'Host: 1.2.3.4:80\r\n'
+        expected_result += b'a: b\r\n'
+        expected_result += b'Content-Length: 4\r\n\r\n'
+        expected_result += b'data'
+        self.assertEqual(packet, expected_result)
+
 
 if __name__ == '__main__':
     unittest.main()

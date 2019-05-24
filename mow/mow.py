@@ -343,7 +343,7 @@ class CustomRequest:
         :type headers: dict or None
 
         :param data: Data to send with the packet.
-        :type data: str or None
+        :type data: bytes or str or None
         """
         if not isinstance(host, str):
             raise Exception('Host must be a string.')
@@ -361,8 +361,8 @@ class CustomRequest:
         if headers and not isinstance(headers, dict):
             raise Exception('Headers must be a dictionary.')
 
-        if data and not isinstance(data, str):
-            raise Exception('Data must be a string.')
+        if data and not isinstance(data, str) and not isinstance(data, bytes):
+            raise Exception('Data must be a string or bytes.')
 
         self.host = b'Host: %s:%d' % (_bc(host), port)
 
