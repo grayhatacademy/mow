@@ -30,15 +30,14 @@ class Overflow:
     registers. They are initialized to 'AAAA' through 'IIII' based on their
     position and can be changed after class initialization is complete.
     """
-    def __init__(self, register_dist, register_count, endianess,
+    def __init__(self, buff_stack_offset, register_count, endianess,
                  padding_after_ra=0, gadgets_base=0,
                  overflow_string_contents='', bad_bytes=None):
         """
         Initialize the overflow class.
 
-        :param register_dist: Distance from the buffer containing the
-        overflow to the s0 register in memory.
-        :type register_dist: int
+        :param buff_stack_offset: Position of buffer on the stack.
+        :type buff_stack_offset: int
 
         :param register_count: Number of registers saved in the function. If
         the only register is s0, then provide 1. If s0 - s7 and fp are available
@@ -73,7 +72,7 @@ class Overflow:
             raise Exception('Invalid value for endianess. Must be '
                             'mow.LITTLE_ENDIAN or mow.BIG_ENDIAN')
 
-        self._register_dist = register_dist
+        self._register_dist = buff_stack_offset - (4 * (register_count + 1))
         self._padding_after_ra = padding_after_ra
         self._register_count = register_count
         self._endianess = endianess

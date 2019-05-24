@@ -5,8 +5,8 @@ import unittest
 
 class TestMowInit(unittest.TestCase):
     def test_default_values(self):
-        overflow = mow.Overflow(1, 2, mow.LITTLE_ENDIAN)
-        self.assertEqual(overflow._register_dist, 1)
+        overflow = mow.Overflow(0x20, 2, mow.LITTLE_ENDIAN)
+        self.assertEqual(overflow._register_dist, 0x14)
         self.assertEqual(overflow._register_count, 2)
         self.assertEqual(overflow._endianess, mow.LITTLE_ENDIAN)
         self.assertEqual(overflow._padding_after_ra, 0)
@@ -15,10 +15,10 @@ class TestMowInit(unittest.TestCase):
         self.assertEqual(overflow._bad_bytes, None)
 
     def test_settings_values(self):
-        overflow = mow.Overflow(1, 2, mow.LITTLE_ENDIAN, padding_after_ra=5,
+        overflow = mow.Overflow(0x20, 2, mow.LITTLE_ENDIAN, padding_after_ra=5,
                                 gadgets_base=6, overflow_string_contents='a',
                                 bad_bytes=[1])
-        self.assertEqual(overflow._register_dist, 1)
+        self.assertEqual(overflow._register_dist, 0x14)
         self.assertEqual(overflow._register_count, 2)
         self.assertEqual(overflow._endianess, mow.LITTLE_ENDIAN)
         self.assertEqual(overflow._padding_after_ra, 5)
@@ -293,26 +293,26 @@ class TestGenerate(unittest.TestCase):
         self.assertEqual(of, b'JJJJ')
 
     def test_large_overflow(self):
-        self.overflow = mow.Overflow(20, 9, mow.BIG_ENDIAN)
+        self.overflow = mow.Overflow(0x3C, 9, mow.BIG_ENDIAN)
         self.overflow.ra = 0x41414141
         of = self.overflow.generate()
         self.assertEqual(of,
                          b'XXXXXXXXXXXXXXXXXXXXAAAABBBBCCCCDDDDEEEEFFFFGGGGHHHHIIIIAAAA')
 
     def test_padding_after_ra(self):
-        self.overflow = mow.Overflow(5, 0, mow.BIG_ENDIAN, padding_after_ra=4)
+        self.overflow = mow.Overflow(9, 0, mow.BIG_ENDIAN, padding_after_ra=4)
         of = self.overflow.generate()
         self.assertEqual(of, b'XXXXXJJJJXXXX')
 
     def test_gadget_base(self):
-        self.overflow = mow.Overflow(5, 0, mow.BIG_ENDIAN,
+        self.overflow = mow.Overflow(9, 0, mow.BIG_ENDIAN,
                                      gadgets_base=0x11111111)
         self.overflow.ra = 0x11111111
         of = self.overflow.generate()
         self.assertEqual(of, b'XXXXX\x22\x22\x22\x22')
 
     def test_overflow_string(self):
-        self.overflow = mow.Overflow(8, 0, mow.BIG_ENDIAN,
+        self.overflow = mow.Overflow(12, 0, mow.BIG_ENDIAN,
                                      overflow_string_contents='abcd')
         of = self.overflow.generate()
         self.assertEqual(of, b'XXXXJJJJ')
