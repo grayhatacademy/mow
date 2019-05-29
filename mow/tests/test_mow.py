@@ -329,6 +329,33 @@ class TestGenerate(unittest.TestCase):
         with self.assertRaises(Exception):
             self.overflow.generate()
 
+    def test_big_endian_rop_to_text(self):
+        self.overflow = mow.Overflow(8, 0, mow.BIG_ENDIAN, bad_bytes=[0x41])
+        self.overflow.ra = 0x414243
+        with self.assertRaises(Exception):
+            self.overflow.generate()
+
+    def test_stack_write_rop_to_text(self):
+        self.overflow = mow.Overflow(8, 0, mow.LITTLE_ENDIAN, bad_bytes=[0x41])
+        self.overflow.ra = 0x414243
+        self.overflow.add_to_stack(10, command='FDSA')
+        with self.assertRaises(Exception):
+            self.overflow.generate()
+
+    def test_padding_after_ra_rop_to_text(self):
+        self.overflow = mow.Overflow(8, 0, mow.LITTLE_ENDIAN,
+                                     padding_after_ra=4, bad_bytes=[0x41])
+        self.overflow.ra = 0x414243
+        with self.assertRaises(Exception):
+            self.overflow.generate()
+
+    def test_rop_to_text(self):
+        self.overflow = mow.Overflow(12, 0, mow.LITTLE_ENDIAN,
+                                     overflow_string_contents='abcd')
+        self.overflow.ra = 0x414141
+        of = self.overflow.generate()
+        self.assertEqual(of, b'XXXXAAA')
+
 
 class TestSimpleRequestInit(unittest.TestCase):
     def test_invalid_host(self):

@@ -78,7 +78,7 @@ class Overflow:
         self._endianess = endianess
         self._gadget_base = gadgets_base
         self._overflow_string_contents = overflow_string_contents
-        self.ra = b'JJJJ'
+        self.ra = 0x4A4A4A4A
         self._stack_write = b''
         self._bad_bytes = [bytes([curr_byte]) for curr_byte in bad_bytes] \
             if bad_bytes is not None else None
@@ -224,6 +224,33 @@ class Overflow:
                 return True
         return False
 
+    def _format_ra(self):
+        """
+        Check if the return address is valid based on other parameters. If
+        valid, format ra for successful jump.
+
+        :return: formatted return address.
+        """
+        if self.ra > 0x01000000:
+            return self._pack_register(self.ra)
+
+        if self._endianess == BIG_ENDIAN:
+            raise Exception('Most significant byte of ra is NULL. Either you '
+                            'forgot the gadget base or are attempting to '
+                            'return to .text on a big endian target.')
+        if self._stack_write != b'':
+            raise Exception('Attempting to return to .text with an additional '
+                            'stack write.')
+
+        if self._padding_after_ra != 0:
+            raise Exception('Attempting to return to text section with '
+                            'padding after ra.')
+
+        ra = self._pack_register(self.ra)
+
+        print('Return to text detected. NULL byte removed from $ra.')
+        return ra[:-1]
+
     def generate(self):
         """
         Generate an overflow string based on registers, $ra, and the stack.
@@ -253,7 +280,7 @@ class Overflow:
             overflow += self._pack_register(register_value)
 
         print('ra = 0x', end=''),
-        overflow += self._pack_register(self.ra)
+        overflow += self._format_ra()
 
         print('Adding %d bytes of padding after ra' % self._padding_after_ra)
         overflow += b'X' * self._padding_after_ra
