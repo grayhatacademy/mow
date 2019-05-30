@@ -92,12 +92,15 @@ class Overflow:
             register_value = bytes(chr(ord('A') + index) * 4, 'utf8')
             setattr(self, register_name, register_value)
 
-    def _pack_register(self, register):
+    def _pack_register(self, register, register_name='Generic Pack'):
         """
         Pack a register based on the endianess of the target.
 
         :param register: Register value to pack.
         :type register: bytes or int.
+
+        :param register_name: Name to append when printing to stdout.
+        :type register_name: str
 
         :return: Packed register value.
         :rtype: bytes
@@ -113,8 +116,9 @@ class Overflow:
 
         register_value = struct.pack(self._endianess, register +
                                      self._gadget_base)
-        print('%s (0x%04x + 0x%04x)' % (register_value.hex(),
-                                        self._gadget_base, register))
+        print('%s = 0x%s (0x%04x + 0x%04x)' % (register_name,
+                                               register_value.hex(),
+                                               self._gadget_base, register))
         if self._has_bad_bytes(register_value):
             raise Exception('Bad byte found.')
         return register_value
@@ -246,7 +250,7 @@ class Overflow:
             raise Exception('Attempting to return to text section with '
                             'padding after ra.')
 
-        ra = self._pack_register(self.ra)
+        ra = self._pack_register(self.ra, 'ra')
 
         print('Return to text detected. NULL byte removed from $ra.')
         return ra[:-1]
@@ -273,13 +277,12 @@ class Overflow:
         for index in range(0, self._register_count):
             if index == 8:
                 register_value = getattr(self, 'fp')
-                print('fp = 0x', end='')
+                register_name = 'fp'
             else:
                 register_value = getattr(self, 's%d' % index)
-                print('s%d = 0x' % index, end='')
-            overflow += self._pack_register(register_value)
+                register_name = 's%d'
+            overflow += self._pack_register(register_value, register_name)
 
-        print('ra = 0x', end=''),
         overflow += self._format_ra()
 
         print('Adding %d bytes of padding after ra' % self._padding_after_ra)

