@@ -85,7 +85,7 @@ class Overflow:
 
         # Dynamically generate register class variables.
         for index in range(0, register_count):
-            if index == 8:
+            if index == (register_count - 1):
                 register_name = 'fp'
             else:
                 register_name = 's%d' % index
@@ -109,7 +109,8 @@ class Overflow:
             raise Exception('Register must be bytes or int type.')
 
         if isinstance(register, bytes):
-            print(register.hex())
+            print('%s = 0x%s' % (register_name, register.hex()))
+
             if self._has_bad_bytes(register):
                 raise Exception('Bad byte found.')
             return register
@@ -236,7 +237,7 @@ class Overflow:
         :return: formatted return address.
         """
         if self.ra > 0x01000000:
-            return self._pack_register(self.ra)
+            return self._pack_register(self.ra, 'ra')
 
         if self._endianess == BIG_ENDIAN:
             raise Exception('Most significant byte of ra is NULL. Either you '
@@ -275,12 +276,12 @@ class Overflow:
                                   self._overflow_string_contents))
 
         for index in range(0, self._register_count):
-            if index == 8:
+            if index == (self._register_count - 1):
                 register_value = getattr(self, 'fp')
                 register_name = 'fp'
             else:
                 register_value = getattr(self, 's%d' % index)
-                register_name = 's%d'
+                register_name = 's%d' % index
             overflow += self._pack_register(register_value, register_name)
 
         overflow += self._format_ra()
@@ -303,7 +304,6 @@ class SimpleRequest:
     """
     def __init__(self, host, port=80, request=None, args=None):
         """
-
         :param host: IP or host name of target.
         :type host: str
 
@@ -355,7 +355,6 @@ class CustomRequest:
     def __init__(self, host, port, request_type, request_dest, headers=None,
                  data=None):
         """
-
         :param host: IP or host name of target.
         :type host: str
 
@@ -417,7 +416,8 @@ class CustomRequest:
         packet += self.host + b'\r\n'
         if self.headers:
             for header in self.headers:
-                packet += b'%s: %s\r\n' % (_bc(header), _bc(self.headers[header]))
+                packet += b'%s: %s\r\n' % (_bc(header),
+                                           _bc(self.headers[header]))
 
         data_len = len(self.data) if self.data is not None else 0
         packet += b'Content-Length: %d\r\n\r\n' % data_len

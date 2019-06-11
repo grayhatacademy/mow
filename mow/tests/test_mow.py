@@ -59,47 +59,47 @@ class TestMowInit(unittest.TestCase):
 
     def test_one_registers(self):
         overflow = mow.Overflow(1, 1, mow.LITTLE_ENDIAN)
-        self._test_registers(overflow, ['s0'],
+        self._test_registers(overflow, ['fp'],
                              ['s1', 's2', 's3', 's4', 's5', 's6', 's7',
-                              'fp'])
+                              's0'])
 
     def test_two_registers(self):
         overflow = mow.Overflow(1, 2, mow.LITTLE_ENDIAN)
-        self._test_registers(overflow, ['s0', 's1'],
+        self._test_registers(overflow, ['s0', 'fp'],
                              ['s2', 's3', 's4', 's5', 's6', 's7',
-                              'fp'])
+                              's1'])
 
     def test_three_registers(self):
         overflow = mow.Overflow(1, 3, mow.LITTLE_ENDIAN)
-        self._test_registers(overflow, ['s0', 's1', 's2'],
-                             ['s3', 's4', 's5', 's6', 's7', 'fp'])
+        self._test_registers(overflow, ['s0', 's1', 'fp'],
+                             ['s3', 's4', 's5', 's6', 's7', 's2'])
 
     def test_four_registers(self):
         overflow = mow.Overflow(1, 4, mow.LITTLE_ENDIAN)
-        self._test_registers(overflow, ['s0', 's1', 's2', 's3'],
-                             ['s4', 's5', 's6', 's7', 'fp'])
+        self._test_registers(overflow, ['s0', 's1', 's2', 'fp'],
+                             ['s4', 's5', 's6', 's7', 's3'])
 
     def test_five_registers(self):
         overflow = mow.Overflow(1, 5, mow.LITTLE_ENDIAN)
-        self._test_registers(overflow, ['s0', 's1', 's2', 's3', 's4'],
-                             ['s5', 's6', 's7', 'fp'])
+        self._test_registers(overflow, ['s0', 's1', 's2', 's3', 'fp'],
+                             ['s5', 's6', 's7', 's4'])
 
     def test_six_registers(self):
         overflow = mow.Overflow(1, 6, mow.LITTLE_ENDIAN)
-        self._test_registers(overflow, ['s0', 's1', 's2', 's3', 's4', 's5'],
-                             ['s6', 's7', 'fp'])
+        self._test_registers(overflow, ['s0', 's1', 's2', 's3', 's4', 'fp'],
+                             ['s6', 's7', 's5'])
 
     def test_seven_registers(self):
         overflow = mow.Overflow(1, 7, mow.LITTLE_ENDIAN)
         self._test_registers(overflow,
-                             ['s0', 's1', 's2', 's3', 's4', 's5', 's6'],
-                             ['s7', 'fp'])
+                             ['s0', 's1', 's2', 's3', 's4', 's5', 'fp'],
+                             ['s7', 's6'])
 
     def test_eight_registers(self):
         overflow = mow.Overflow(1, 8, mow.LITTLE_ENDIAN)
         self._test_registers(overflow,
-                             ['s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7'],
-                             ['fp'])
+                             ['s0', 's1', 's2', 's3', 's4', 's5', 's6', 'fp'],
+                             ['s7'])
 
     def test_nine_registers(self):
         overflow = mow.Overflow(1, 9, mow.LITTLE_ENDIAN)
@@ -124,13 +124,13 @@ class TestMowInit(unittest.TestCase):
 class TestPackRegisters(unittest.TestCase):
     def setUp(self):
         self.overflow = mow.Overflow(1, 0, mow.LITTLE_ENDIAN)
+        self.overflow._has_bad_bytes = mock.Mock()
 
     def test_invalid_input(self):
         with self.assertRaises(Exception):
             self.overflow._pack_register('abcd')
 
     def test_bytes_type_has_bad_bytes(self):
-        self.overflow._has_bad_bytes = mock.Mock()
         self.overflow._has_bad_bytes.return_value = True
 
         with self.assertRaises(Exception):
@@ -138,7 +138,6 @@ class TestPackRegisters(unittest.TestCase):
         self.overflow._has_bad_bytes.assert_called_once_with(b'AAAA')
 
     def test_bytes_type(self):
-        self.overflow._has_bad_bytes = mock.Mock()
         self.overflow._has_bad_bytes.return_value = False
 
         result = self.overflow._pack_register(b'AAAA')
@@ -146,7 +145,6 @@ class TestPackRegisters(unittest.TestCase):
         self.overflow._has_bad_bytes.assert_called_once_with(b'AAAA')
 
     def test_int_type_has_bad_bytes(self):
-        self.overflow._has_bad_bytes = mock.Mock()
         self.overflow._has_bad_bytes.return_value = True
 
         with self.assertRaises(Exception):
@@ -155,7 +153,6 @@ class TestPackRegisters(unittest.TestCase):
             b'\xEF\xBE\xAD\xDE')
 
     def test_int_type(self):
-        self.overflow._has_bad_bytes = mock.Mock()
         self.overflow._has_bad_bytes.return_value = False
 
         result = self.overflow._pack_register(0xDEADBEEF)
