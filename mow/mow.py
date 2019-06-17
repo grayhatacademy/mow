@@ -1,10 +1,22 @@
 import struct
 import socket
+import logging
 
 BIG_ENDIAN = '>L'
 LITTLE_ENDIAN = '<L'
 POST = b'POST'
 GET = b'GET'
+
+
+class log_level(object):
+    """
+    Defined values for logging. Prevents the need to import logging just to
+    specify the log level.
+    """
+    DEBUG = logging.DEBUG
+    INFO = logging.INFO
+    WARN = logging.WARN
+    ERROR = logging.ERROR
 
 
 def _bc(string):
@@ -23,6 +35,31 @@ def _bc(string):
     return string
 
 
+def _get_logger(name, level):
+    """
+    Create and return a logger with the provided name and logging level.
+
+    :param name: Name to give the logger, will return existing logger if it
+    already exists.
+    :type name: str
+
+    :param level: Logging level to give logger.
+    :type level: mow.log_level
+
+    :return: Logger object.
+    """
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+
+    if not logger.handlers:
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.INFO)
+
+        logger.addHandler(ch)
+
+    return logger
+
+
 class Overflow:
     """
     Class to generate overflow strings for MIPS targets. Upon initialization
@@ -32,7 +69,8 @@ class Overflow:
     """
     def __init__(self, buff_stack_offset, register_count, endianess,
                  padding_after_ra=0, gadgets_base=0,
-                 overflow_string_contents='', bad_bytes=None):
+                 overflow_string_contents='', bad_bytes=None,
+                 logging_level=log_level.INFO):
         """
         Initialize the overflow class.
 
@@ -64,6 +102,9 @@ class Overflow:
         :param bad_bytes: List of invalid bytes that cannot be sent to the
         target.
         :type bad_bytes: list(int)
+
+        :param logging_level: Logging level to assign to the internal logger.
+        :type logging_level: mow.log_level
         """
         if register_count < 0 or register_count > 9:
             raise Exception('Register count must be between 0 and 9.')
@@ -71,6 +112,10 @@ class Overflow:
         if endianess not in [BIG_ENDIAN, LITTLE_ENDIAN]:
             raise Exception('Invalid value for endianess. Must be '
                             'mow.LITTLE_ENDIAN or mow.BIG_ENDIAN')
+
+        if logging_level not in [log_level.INFO, log_level.DEBUG,
+                                 log_level.WARN, log_level.ERROR]:
+            raise Exception('Invalid logging level provided.')
 
         self._register_dist = buff_stack_offset - (4 * (register_count + 1))
         self._padding_after_ra = padding_after_ra
@@ -82,6 +127,7 @@ class Overflow:
         self._stack_write = b''
         self._bad_bytes = [bytes([curr_byte]) for curr_byte in bad_bytes] \
             if bad_bytes is not None else None
+        self._logger = _get_logger('Overflow_%d' % id(self), logging_level)
 
         # Dynamically generate register class variables.
         for index in range(0, register_count):
@@ -109,7 +155,7 @@ class Overflow:
             raise Exception('Register must be bytes or int type.')
 
         if isinstance(register, bytes):
-            print('%s = 0x%s' % (register_name, register.hex()))
+            self._logger.info('%s = 0x%s' % (register_name, register.hex()))
 
             if self._has_bad_bytes(register):
                 raise Exception('Bad byte found.')
@@ -117,9 +163,9 @@ class Overflow:
 
         register_value = struct.pack(self._endianess, register +
                                      self._gadget_base)
-        print('%s = 0x%s (0x%04x + 0x%04x)' % (register_name,
-                                               register_value.hex(),
-                                               self._gadget_base, register))
+        self._logger.info('%s = 0x%s (0x%04x + 0x%04x)' %
+                          (register_name, register_value.hex(),
+                           self._gadget_base, register))
         if self._has_bad_bytes(register_value):
             raise Exception('Bad byte found.')
         return register_value
@@ -225,7 +271,7 @@ class Overflow:
 
         for byte in self._bad_bytes:
             if byte in byte_str:
-                print('Bad byte 0x%s found.' % byte.hex())
+                self._logger.error('Bad byte 0x%s found.' % byte.hex())
                 return True
         return False
 
@@ -253,7 +299,8 @@ class Overflow:
 
         ra = self._pack_register(self.ra, 'ra')
 
-        print('Return to text detected. NULL byte removed from $ra.')
+        self._logger.info('Return to text detected. NULL byte removed from '
+                          '$ra.')
         return ra[:-1]
 
     def generate(self):
@@ -263,17 +310,18 @@ class Overflow:
         :return: Overflow string.
         :rtype: bytes
         """
-        print('*' * 20)
-        print('Overflow Generation')
-        print('*' * 20)
+        self._logger.info('*' * 20)
+        self._logger.info('Overflow Generation')
+        self._logger.info('*' * 20)
 
         overflow = b'X' * (self._register_dist - len(
             self._overflow_string_contents))
 
-        print('Bytes to first register: 0x%04x(%d) accounting for %d bytes in '
-              'the string: %s' % (len(overflow), len(overflow),
-                                  len(self._overflow_string_contents),
-                                  self._overflow_string_contents))
+        self._logger.info(
+            'Bytes to first register: 0x%04x(%d) accounting for %d bytes in '
+            'the string: %s' % (len(overflow), len(overflow),
+                                len(self._overflow_string_contents),
+                                self._overflow_string_contents))
 
         for index in range(0, self._register_count):
             if index == (self._register_count - 1):
@@ -286,12 +334,13 @@ class Overflow:
 
         overflow += self._format_ra()
 
-        print('Adding %d bytes of padding after ra' % self._padding_after_ra)
+        self._logger.info('Adding %d bytes of padding after ra' %
+                          self._padding_after_ra)
         overflow += b'X' * self._padding_after_ra
 
-        print('stack = %s' % self._stack_write)
-        print('*' * 20)
-        print()
+        self._logger.info('stack = %s' % self._stack_write)
+        self._logger.info('*' * 20)
+        self._logger.info('')
         if self._has_bad_bytes(self._stack_write):
             raise Exception('Bad bytes found in the stack.')
 
@@ -353,7 +402,7 @@ class CustomRequest:
     Generate a custom request. Use when you need to control header values.
     """
     def __init__(self, host, port, request_type, request_dest, headers=None,
-                 data=None):
+                 data=None, logging_level=log_level.INFO):
         """
         :param host: IP or host name of target.
         :type host: str
@@ -372,6 +421,9 @@ class CustomRequest:
 
         :param data: Data to send with the packet.
         :type data: bytes or str or None
+
+        :param logging_level: Logging level to assign to the internal logger.
+        :type logging_level: mow.log_level
         """
         if not isinstance(host, str):
             raise Exception('Host must be a string.')
@@ -392,6 +444,10 @@ class CustomRequest:
         if data and not isinstance(data, str) and not isinstance(data, bytes):
             raise Exception('Data must be a string or bytes.')
 
+        if logging_level not in [log_level.INFO, log_level.DEBUG,
+                                 log_level.WARN, log_level.ERROR]:
+            raise Exception('Invalid logging level provided.')
+
         self.host = b'Host: %s:%d' % (_bc(host), port)
 
         request_dest = _bc(request_dest)
@@ -401,6 +457,7 @@ class CustomRequest:
         self.request = b'%s /%s HTTP/1.1' % (request_type, request_dest)
         self.headers = headers
         self.data = _bc(data) if data is not None else b''
+        self._logger = _get_logger('CustomRequest_%d' % id(self), logging_level)
 
     def create_packet(self):
         """
@@ -409,9 +466,9 @@ class CustomRequest:
         :return: Generated packet.
         :rtype: bytes
         """
-        print('*' * 20)
-        print('Packet Generation')
-        print('*' * 20)
+        self._logger.info('*' * 20)
+        self._logger.info('Packet Generation')
+        self._logger.info('*' * 20)
         packet = self.request + b'\r\n'
         packet += self.host + b'\r\n'
         if self.headers:
@@ -423,9 +480,9 @@ class CustomRequest:
         packet += b'Content-Length: %d\r\n\r\n' % data_len
         packet += self.data
 
-        print(packet.decode('utf8', 'ignore'))
-        print('*' * 20)
-        print()
+        self._logger.info(packet.decode('utf8', 'ignore'))
+        self._logger.info('*' * 20)
+        self._logger.info('')
         return packet
 
 

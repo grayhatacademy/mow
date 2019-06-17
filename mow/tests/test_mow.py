@@ -1,9 +1,10 @@
 import mow
 import mock
+import logging
 import unittest
 
 
-class TestMowInit(unittest.TestCase):
+class TestOverflowInit(unittest.TestCase):
     def test_default_values(self):
         overflow = mow.Overflow(0x20, 2, mow.LITTLE_ENDIAN)
         self.assertEqual(overflow._register_dist, 0x14)
@@ -119,6 +120,30 @@ class TestMowInit(unittest.TestCase):
         self.assertEqual(overflow.s6, b'GGGG')
         self.assertEqual(overflow.s7, b'HHHH')
         self.assertEqual(overflow.fp, b'IIII')
+
+    def test_bad_logger(self):
+        with self.assertRaises(Exception):
+            mow.Overflow(1, 9, mow.LITTLE_ENDIAN, logging_level=5)
+
+    def test_debug_logger(self):
+        overflow = mow.Overflow(1, 9, mow.LITTLE_ENDIAN,
+                                logging_level=mow.log_level.DEBUG)
+        self.assertEqual(overflow._logger.getEffectiveLevel(), logging.DEBUG)
+
+    def test_info_logger(self):
+        overflow = mow.Overflow(1, 9, mow.LITTLE_ENDIAN,
+                                logging_level=mow.log_level.INFO)
+        self.assertEqual(overflow._logger.getEffectiveLevel(), logging.INFO)
+
+    def test_warn_logger(self):
+        overflow = mow.Overflow(1, 9, mow.LITTLE_ENDIAN,
+                                logging_level=mow.log_level.WARN)
+        self.assertEqual(overflow._logger.getEffectiveLevel(), logging.WARN)
+
+    def test_error_logger(self):
+        overflow = mow.Overflow(1, 9, mow.LITTLE_ENDIAN,
+                                logging_level=mow.log_level.ERROR)
+        self.assertEqual(overflow._logger.getEffectiveLevel(), logging.ERROR)
 
 
 class TestPackRegisters(unittest.TestCase):
@@ -474,6 +499,40 @@ class TestCustomRequestInit(unittest.TestCase):
                                request_dest=b'/apply.cgi', headers={'a': 'b'},
                                data='')
         self.assertEqual(cr.request, b'GET /apply.cgi HTTP/1.1')
+
+    def test_bad_logger(self):
+        with self.assertRaises(Exception):
+            mow.CustomRequest('1.2.3.4', port=80, request_type=mow.GET,
+                              request_dest='apply.cgi', headers={'a': 'b'},
+                              data='', logging_level=5)
+
+    def test_debug_logger(self):
+        request = mow.CustomRequest('1.2.3.4', port=80, request_type=mow.GET,
+                                    request_dest='apply.cgi', headers={'a': 'b'},
+                                    data='', logging_level=mow.log_level.DEBUG)
+
+        self.assertEqual(request._logger.getEffectiveLevel(), logging.DEBUG)
+
+    def test_info_logger(self):
+        request = mow.CustomRequest('1.2.3.4', port=80, request_type=mow.GET,
+                                    request_dest='apply.cgi', headers={'a': 'b'},
+                                    data='', logging_level=mow.log_level.INFO)
+
+        self.assertEqual(request._logger.getEffectiveLevel(), logging.INFO)
+
+    def test_warn_logger(self):
+        request = mow.CustomRequest('1.2.3.4', port=80, request_type=mow.GET,
+                                    request_dest='apply.cgi', headers={'a': 'b'},
+                                    data='', logging_level=mow.log_level.WARN)
+
+        self.assertEqual(request._logger.getEffectiveLevel(), logging.WARN)
+
+    def test_error_logger(self):
+        request = mow.CustomRequest('1.2.3.4', port=80, request_type=mow.GET,
+                                    request_dest='apply.cgi', headers={'a': 'b'},
+                                    data='', logging_level=mow.log_level.ERROR)
+
+        self.assertEqual(request._logger.getEffectiveLevel(), logging.ERROR)
 
 
 class TestCreatePacket(unittest.TestCase):
