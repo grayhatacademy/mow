@@ -317,11 +317,13 @@ class Overflow:
         overflow = b'X' * (self._register_dist - len(
             self._overflow_string_contents))
 
-        self._logger.info(
-            'Bytes to first register: 0x%04x(%d) accounting for %d bytes in '
-            'the string: %s' % (len(overflow), len(overflow),
-                                len(self._overflow_string_contents),
-                                self._overflow_string_contents))
+        log_statement = 'Bytes to first register 0x%04x(%d)' % \
+                        (len(overflow), len(overflow))
+        if len(self._overflow_string_contents):
+            log_statement += ' accounting for %d bytes in the string "%s"' % \
+                             (len(self._overflow_string_contents),
+                              self._overflow_string_contents)
+        self._logger.info(log_statement)
 
         for index in range(0, self._register_count):
             if index == (self._register_count - 1):
