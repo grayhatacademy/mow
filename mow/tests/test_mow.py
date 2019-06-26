@@ -329,9 +329,9 @@ class TestGenerate(unittest.TestCase):
     def test_gadget_base(self):
         self.overflow = mow.Overflow(9, 0, mow.BIG_ENDIAN,
                                      gadgets_base=0x11111111)
-        self.overflow.ra = 0x11111111
+        self.overflow.ra = 0x111111
         of = self.overflow.generate()
-        self.assertEqual(of, b'XXXXX\x22\x22\x22\x22')
+        self.assertEqual(of, b'XXXXX\x11\x22\x22\x22')
 
     def test_overflow_string(self):
         self.overflow = mow.Overflow(12, 0, mow.BIG_ENDIAN,
@@ -352,13 +352,13 @@ class TestGenerate(unittest.TestCase):
             self.overflow.generate()
 
     def test_big_endian_rop_to_text(self):
-        self.overflow = mow.Overflow(8, 0, mow.BIG_ENDIAN, bad_bytes=[0x41])
+        self.overflow = mow.Overflow(8, 0, mow.BIG_ENDIAN)
         self.overflow.ra = 0x414243
         with self.assertRaises(Exception):
             self.overflow.generate()
 
     def test_stack_write_rop_to_text(self):
-        self.overflow = mow.Overflow(8, 0, mow.LITTLE_ENDIAN, bad_bytes=[0x41])
+        self.overflow = mow.Overflow(8, 0, mow.LITTLE_ENDIAN)
         self.overflow.ra = 0x414243
         self.overflow.add_to_stack(10, command='FDSA')
         with self.assertRaises(Exception):
@@ -366,7 +366,7 @@ class TestGenerate(unittest.TestCase):
 
     def test_padding_after_ra_rop_to_text(self):
         self.overflow = mow.Overflow(8, 0, mow.LITTLE_ENDIAN,
-                                     padding_after_ra=4, bad_bytes=[0x41])
+                                     padding_after_ra=4)
         self.overflow.ra = 0x414243
         with self.assertRaises(Exception):
             self.overflow.generate()

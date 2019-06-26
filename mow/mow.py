@@ -282,7 +282,7 @@ class Overflow:
 
         :return: formatted return address.
         """
-        if self.ra > 0x01000000:
+        if (self.ra + self._gadget_base) > 0x01000000:
             return self._pack_register(self.ra, 'ra')
 
         if self._endianess == BIG_ENDIAN:
