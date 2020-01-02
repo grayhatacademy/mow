@@ -110,6 +110,63 @@ class TestOverflowInit(unittest.TestCase):
                               'fp'],
                              [])
 
+    def test_no_registers_no_fp(self):
+        overflow = mow.Overflow(1, 0, mow.LITTLE_ENDIAN, uses_fp=False)
+        self._test_registers(overflow, [],
+                             ['s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7',
+                              'fp'])
+
+    def test_one_registers_no_fp(self):
+        overflow = mow.Overflow(1, 1, mow.LITTLE_ENDIAN, uses_fp=False)
+        self._test_registers(overflow, ['s0'],
+                             ['s1', 's2', 's3', 's4', 's5', 's6', 's7',
+                              'fp'])
+
+    def test_two_registers_no_fp(self):
+        overflow = mow.Overflow(1, 2, mow.LITTLE_ENDIAN, uses_fp=False)
+        self._test_registers(overflow, ['s0', 's1'],
+                             ['s2', 's3', 's4', 's5', 's6', 's7',
+                              'fp'])
+
+    def test_three_registers_no_fp(self):
+        overflow = mow.Overflow(1, 3, mow.LITTLE_ENDIAN, uses_fp=False)
+        self._test_registers(overflow, ['s0', 's1', 's2'],
+                             ['s3', 's4', 's5', 's6', 's7', 'fp'])
+
+    def test_four_registers_no_fp(self):
+        overflow = mow.Overflow(1, 4, mow.LITTLE_ENDIAN, uses_fp=False)
+        self._test_registers(overflow, ['s0', 's1', 's2', 's3'],
+                             ['s4', 's5', 's6', 's7', 'fp'])
+
+    def test_five_registers_no_fp(self):
+        overflow = mow.Overflow(1, 5, mow.LITTLE_ENDIAN, uses_fp=False)
+        self._test_registers(overflow, ['s0', 's1', 's2', 's3', 's4'],
+                             ['s5', 's6', 's7', 'fp'])
+
+    def test_six_registers_no_fp(self):
+        overflow = mow.Overflow(1, 6, mow.LITTLE_ENDIAN, uses_fp=False)
+        self._test_registers(overflow, ['s0', 's1', 's2', 's3', 's4', 's5'],
+                             ['s6', 's7', 'fp'])
+
+    def test_seven_registers_no_fp(self):
+        overflow = mow.Overflow(1, 7, mow.LITTLE_ENDIAN, uses_fp=False)
+        self._test_registers(overflow,
+                             ['s0', 's1', 's2', 's3', 's4', 's5', 's6'],
+                             ['s7', 'fp'])
+
+    def test_eight_registers_no_fp(self):
+        overflow = mow.Overflow(1, 8, mow.LITTLE_ENDIAN, uses_fp=False)
+        self._test_registers(overflow,
+                             ['s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7'],
+                             ['fp'])
+
+    def test_nine_registers_no_fp(self):
+        overflow = mow.Overflow(1, 9, mow.LITTLE_ENDIAN, uses_fp=False)
+        self._test_registers(overflow,
+                             ['s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7',
+                              'fp'],
+                             [])
+
     def test_register_values(self):
         overflow = mow.Overflow(1, 9, mow.LITTLE_ENDIAN)
         self.assertEqual(overflow.s0, b'AAAA')

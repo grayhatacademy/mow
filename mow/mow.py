@@ -69,7 +69,7 @@ class Overflow:
     """
     def __init__(self, buff_stack_offset, register_count, endianess,
                  padding_after_ra=0, gadgets_base=0,
-                 overflow_string_contents='', bad_bytes=None,
+                 overflow_string_contents='', bad_bytes=None, uses_fp=True,
                  logging_level=log_level.INFO):
         """
         Initialize the overflow class.
@@ -78,30 +78,37 @@ class Overflow:
         :type buff_stack_offset: int
 
         :param register_count: Number of registers saved in the function. If
-        the only register is s0, then provide 1. If s0 - s7 and fp are available
-        then provide 9.
+                               the only register is s0, then provide 1. If s0
+                              - s7 and fp are available then provide 9.
         :type register_count: int
 
         :param endianess: Either mow.BIG_ENDIAN or mow.LITTLE_ENDIAN.
         :type endianess: str
 
         :param padding_after_ra: Indicate amount of padding after ra on the
-        stack.
+                                 stack.
         :type padding_after_ra: int
 
         :param gadgets_base: Base address of ROP gadgets used in a loaded
-        library. If multiple base addresses are needed set this value to 0 and
-        perform the math when setting the register values.
+                             library. If multiple base addresses are needed
+                             set this value to 0 and perform the math when
+                             setting the register values.
         :type gadgets_base: int
 
-        :param overflow_string_contents: If the target buffer contains a
-        string prior to the overwrite, it can be entered here. This value is
-        only used to compute length values.
+        :param overflow_string_contents: If the target buffer contains a string
+                                         prior to the overwrite, it can be
+                                         entered here. This value is only used
+                                          to compute length values.
         :type overflow_string_contents: str
 
         :param bad_bytes: List of invalid bytes that cannot be sent to the
         target.
         :type bad_bytes: list(int)
+
+        :param uses_fp: Overflow makes use of the frame pointer register. Will
+                        not effect the exploit, just which registers are added
+                        as class variables.
+        :type uses_fp: bool
 
         :param logging_level: Logging level to assign to the internal logger.
         :type logging_level: mow.log_level
@@ -127,11 +134,13 @@ class Overflow:
         self._stack_write = b''
         self._bad_bytes = [bytes([curr_byte]) for curr_byte in bad_bytes] \
             if bad_bytes is not None else None
+        self._uses_fp = uses_fp
         self._logger = _get_logger('Overflow_%d' % id(self), logging_level)
 
         # Dynamically generate register class variables.
         for index in range(0, register_count):
-            if index == (register_count - 1):
+            if index == (register_count - 1) and \
+                    (self._uses_fp or register_count == 9):
                 register_name = 'fp'
             else:
                 register_name = 's%d' % index
@@ -326,7 +335,8 @@ class Overflow:
         self._logger.info(log_statement)
 
         for index in range(0, self._register_count):
-            if index == (self._register_count - 1):
+            if index == (self._register_count - 1) and \
+                    (self._uses_fp or self._register_count == 9):
                 register_value = getattr(self, 'fp')
                 register_name = 'fp'
             else:
