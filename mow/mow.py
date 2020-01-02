@@ -67,6 +67,7 @@ class Overflow:
     registers. They are initialized to 'AAAA' through 'IIII' based on their
     position and can be changed after class initialization is complete.
     """
+
     def __init__(self, buff_stack_offset, register_count, endianess,
                  padding_after_ra=0, gadgets_base=0,
                  overflow_string_contents='', bad_bytes=None, uses_fp=True,
@@ -124,8 +125,9 @@ class Overflow:
                                  log_level.WARN, log_level.ERROR]:
             raise Exception('Invalid logging level provided.')
 
-        self._register_dist = buff_stack_offset - (4 * (register_count + 1))
         self._padding_after_ra = padding_after_ra
+        self._register_dist = buff_stack_offset - (4 * (register_count + 1)) \
+            - self._padding_after_ra
         self._register_count = register_count
         self._endianess = endianess
         self._gadget_base = gadgets_base
@@ -236,7 +238,7 @@ class Overflow:
         if address and command:
             raise Exception('Address and command cannot be written at the '
                             'same location on the stack.')
-        
+
         if len(self._stack_write) < padding:
             self._stack_write += b'X' * (padding - len(self._stack_write))
 
@@ -363,6 +365,7 @@ class SimpleRequest:
     """
     Generate simple request to use with urllib or requests library.
     """
+
     def __init__(self, host, port=80, request=None, args=None):
         """
         :param host: IP or host name of target.
@@ -413,6 +416,7 @@ class CustomRequest:
     """
     Generate a custom request. Use when you need to control header values.
     """
+
     def __init__(self, host, port, request_type, request_dest, headers=None,
                  data=None, logging_level=log_level.INFO):
         """

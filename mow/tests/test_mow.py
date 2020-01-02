@@ -20,7 +20,7 @@ class TestOverflowInit(unittest.TestCase):
         overflow = mow.Overflow(0x20, 2, mow.LITTLE_ENDIAN, padding_after_ra=5,
                                 gadgets_base=6, overflow_string_contents='a',
                                 bad_bytes=[1])
-        self.assertEqual(overflow._register_dist, 0x14)
+        self.assertEqual(overflow._register_dist, 15)
         self.assertEqual(overflow._register_count, 2)
         self.assertEqual(overflow._endianess, mow.LITTLE_ENDIAN)
         self.assertEqual(overflow._padding_after_ra, 5)
@@ -382,7 +382,7 @@ class TestGenerate(unittest.TestCase):
     def test_padding_after_ra(self):
         self.overflow = mow.Overflow(9, 0, mow.BIG_ENDIAN, padding_after_ra=4)
         of = self.overflow.generate()
-        self.assertEqual(of, b'XXXXXJJJJXXXX')
+        self.assertEqual(of, b'XJJJJXXXX')
 
     def test_gadget_base(self):
         self.overflow = mow.Overflow(9, 0, mow.BIG_ENDIAN,
