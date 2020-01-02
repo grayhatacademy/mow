@@ -488,7 +488,7 @@ class CustomRequest:
         return packet
 
 
-def send_packet(host, port, packet):
+def send_packet(host, port, packet, fire_and_forget=False):
     """
     Send a packet to a target.
 
@@ -498,10 +498,30 @@ def send_packet(host, port, packet):
     :param port: Listening port on the target.
     :type port: int
 
-    :param packet: Packet to send to the target. Generated from a
-    CustomRequest class.
+    :param packet: Packet to send to the target. Generated from a CustomRequest
+                   class.
     :type packet: bytes
+
+    :param fire_and_forget: Send the packet and ignore any response.
+    :type fire_and_forget: bool
+
+    :returns: Response data if returned, None otherwise.
+    :rtype: bytes or None
     """
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
     sock.send(packet)
+
+    if not fire_and_forget:
+        max_receive_len = 4096
+        data = b''
+        while True:
+            data_block = sock.recv(max_receive_len)
+            if not data_block:
+                break
+            data += data_block
+            if len(data_block) != max_receive_len:
+                break
+        print(data)
+        return data
+    return None

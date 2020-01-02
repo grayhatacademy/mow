@@ -1,5 +1,6 @@
 import mow
 import mock
+import socket
 import logging
 import unittest
 
@@ -529,8 +530,9 @@ class TestCustomRequestInit(unittest.TestCase):
 
     def test_error_logger(self):
         request = mow.CustomRequest('1.2.3.4', port=80, request_type=mow.GET,
-                                    request_dest='apply.cgi', headers={'a': 'b'},
-                                    data='', logging_level=mow.log_level.ERROR)
+                                    request_dest='apply.cgi',
+                                    headers={'a': 'b'}, data='',
+                                    logging_level=mow.log_level.ERROR)
 
         self.assertEqual(request._logger.getEffectiveLevel(), logging.ERROR)
 
@@ -585,6 +587,84 @@ class TestCreatePacket(unittest.TestCase):
         expected_result += b'Content-Length: 4\r\n\r\n'
         expected_result += b'data'
         self.assertEqual(packet, expected_result)
+
+
+class TestSendPacket(unittest.TestCase):
+    @mock.patch('socket.socket')
+    def test_send_packet_bad_block(self, mock_socket):
+        host = '1.2.3.4'
+        port = 80
+        packet = b'packet'
+
+        mocket = mock.Mock()
+        mock_socket.return_value = mocket
+
+        mocket.recv.return_value = None
+
+        mow.send_packet(host, port, packet)
+
+        mock_socket.assert_called_once_with(socket.AF_INET, socket.SOCK_STREAM)
+        mocket.connect.assert_called_once_with((host, port))
+        mocket.send.assert_called_once_with(packet)
+        mocket.recv.assert_called_once_with(4096)
+
+    @mock.patch('socket.socket')
+    def test_send_packet_one_block(self, mock_socket):
+        host = '1.2.3.4'
+        port = 80
+        packet = b'packet'
+
+        mocket = mock.Mock()
+        mock_socket.return_value = mocket
+
+        return_data = b'a' * 100
+
+        mocket.recv.return_value = return_data
+
+        result = mow.send_packet(host, port, packet)
+
+        mock_socket.assert_called_once_with(socket.AF_INET, socket.SOCK_STREAM)
+        mocket.connect.assert_called_once_with((host, port))
+        mocket.send.assert_called_once_with(packet)
+        mocket.recv.assert_called_once_with(4096)
+        self.assertEqual(result, return_data)
+
+    @mock.patch('socket.socket')
+    def test_send_packet_multi_block(self, mock_socket):
+        host = '1.2.3.4'
+        port = 80
+        packet = b'packet'
+
+        mocket = mock.Mock()
+        mock_socket.return_value = mocket
+
+        return_data = [b'a' * 4096, b'b' * 4096, b'c' * 100]
+
+        mocket.recv.side_effect = return_data
+
+        result = mow.send_packet(host, port, packet)
+
+        mock_socket.assert_called_once_with(socket.AF_INET, socket.SOCK_STREAM)
+        mocket.connect.assert_called_once_with((host, port))
+        mocket.send.assert_called_once_with(packet)
+        mocket.recv.assert_called_with(4096)
+        self.assertEqual(mocket.recv.call_count, 3)
+        self.assertEqual(result, b''.join(return_data))
+
+    @mock.patch('socket.socket')
+    def test_send_packet_fire_and_forget(self, mock_socket):
+        host = '1.2.3.4'
+        port = 80
+        packet = b'packet'
+
+        mocket = mock.Mock()
+        mock_socket.return_value = mocket
+
+        mow.send_packet(host, port, packet, True)
+
+        mock_socket.assert_called_once_with(socket.AF_INET, socket.SOCK_STREAM)
+        mocket.connect.assert_called_once_with((host, port))
+        mocket.send.assert_called_once_with(packet)
 
 
 if __name__ == '__main__':
