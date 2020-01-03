@@ -206,7 +206,8 @@ class TestOverflowInit(unittest.TestCase):
 
 class TestPackRegisters(unittest.TestCase):
     def setUp(self):
-        self.overflow = mow.Overflow(1, 0, mow.LITTLE_ENDIAN)
+        self.overflow = mow.Overflow(1, 0, mow.LITTLE_ENDIAN,
+                                     gadgets_base=0x11111111)
         self.overflow._has_bad_bytes = mock.Mock()
 
     def test_invalid_input(self):
@@ -231,17 +232,25 @@ class TestPackRegisters(unittest.TestCase):
         self.overflow._has_bad_bytes.return_value = True
 
         with self.assertRaises(Exception):
-            self.overflow._pack_register(0xDEADBEEF)
+            self.overflow._pack_register(0xCD9CADDE)
         self.overflow._has_bad_bytes.assert_called_once_with(
             b'\xEF\xBE\xAD\xDE')
 
     def test_int_type(self):
         self.overflow._has_bad_bytes.return_value = False
 
-        result = self.overflow._pack_register(0xDEADBEEF)
+        result = self.overflow._pack_register(0xCD9CADDE)
         self.assertEqual(result, b'\xEF\xBE\xAD\xDE')
         self.overflow._has_bad_bytes.assert_called_once_with(
             b'\xEF\xBE\xAD\xDE')
+
+    def test_int_no_pack(self):
+        self.overflow._has_bad_bytes.return_value = False
+
+        result = self.overflow._pack_register(0xCD9CADDE, add_base=False)
+        self.assertEqual(result, b'\xDE\xAD\x9C\xCD')
+        self.overflow._has_bad_bytes.assert_called_once_with(
+            b'\xDE\xAD\x9C\xCD')
 
 
 class TestIsSafeWrite(unittest.TestCase):

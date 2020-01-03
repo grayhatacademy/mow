@@ -149,7 +149,8 @@ class Overflow:
             register_value = bytes(chr(ord('A') + index) * 4, 'utf8')
             setattr(self, register_name, register_value)
 
-    def _pack_register(self, register, register_name='Generic Pack'):
+    def _pack_register(self, register, register_name='Generic Pack',
+                       add_base=True):
         """
         Pack a register based on the endianess of the target.
 
@@ -158,6 +159,9 @@ class Overflow:
 
         :param register_name: Name to append when printing to stdout.
         :type register_name: str
+
+        :param add_base: Add base address to the register.
+        :type add_base: bool
 
         :return: Packed register value.
         :rtype: bytes
@@ -172,8 +176,11 @@ class Overflow:
                 raise Exception('Bad byte found.')
             return register
 
-        register_value = struct.pack(self._endianess, register +
-                                     self._gadget_base)
+        value = register
+        if add_base:
+            value += self._gadget_base
+        register_value = struct.pack(self._endianess, value)
+
         self._logger.info('%s = 0x%s (0x%04x + 0x%04x)' %
                           (register_name, register_value.hex(),
                            self._gadget_base, register))
@@ -210,7 +217,7 @@ class Overflow:
         return False
 
     def add_to_stack(self, padding, address=None, command=None,
-                     force_overwrite=False):
+                     force_overwrite=False, add_base=True):
         """
         Write an address or command on the stack passed the $ra address. Used
         for writing ROP gadget addresses and commands on the stack.
@@ -228,6 +235,10 @@ class Overflow:
         :param force_overwrite: Force overwriting values on the stack,
         preventing an exception from being thrown.
         :type force_overwrite: bool
+
+        :param add_base: Add the base address to the provided address.
+                         Ignored if a command is given.
+        :type add_base: bool
 
         :raises: Exception if invalid parameters are provided.
         :raises: Exception if a write collision occurs.
@@ -248,7 +259,8 @@ class Overflow:
 
             if force_overwrite or self._is_safe_write(padding, 4):
                 self._stack_write = self._stack_write[:padding] + \
-                                    self._pack_register(address) + \
+                                    self._pack_register(address,
+                                                        add_base=add_base) + \
                                     self._stack_write[padding + 4:]
             else:
                 raise Exception('Address write overwrote values on the stack.')
